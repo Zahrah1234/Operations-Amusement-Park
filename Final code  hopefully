@@ -65,7 +65,7 @@ class Revenue:
 
 class EmployeeManagement:
     def __init__(self):
-        self.conn = sqlite3.connect('test25.db')
+        self.conn = sqlite3.connect('test50.db')
         self.cur = self.conn.cursor()
 
     def create_table(self):
