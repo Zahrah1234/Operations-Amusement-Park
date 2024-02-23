@@ -1,0 +1,190 @@
+import matplotlib.pyplot as plt
+import random
+from datetime import datetime, timedelta
+import sqlite3
+import pandas as pd
+import seaborn as sns
+class AmusementPark:
+    def __init__(self, name, attraction, capacity, visitor_entry):
+        self.name = name
+        self.attraction = attraction
+        self.capacity = capacity
+        self.visitor_entry = visitor_entry
+        self.visitor_count_history = {attraction: {}} #This attribute is a
+        #dictionary that keeps track of the number of visitors over time for each attraction.
+
+    def enter(self):
+        if self.visitor_entry < self.capacity:
+            self.visitor_entry += 1
+            self.record_visitor()
+        else:
+            print(f"Sorry, {self.name} is at maximum capacity and cannot accept more visitors.")
+
+    def exit(self):
+        if self.visitor_entry > 0:
+            self.visitor_entry -= 1
+            self.record_visitor()
+        else:
+            print(f"No visitors to exit at {self.name}.")
+
+    def record_visitor(self):
+        now = datetime.now()
+        future_date = now + timedelta(days=random.randint(1, 365))
+        month = future_date.strftime("%B")
+        if month in self.visitor_count_history[self.attraction]:
+            self.visitor_count_history[self.attraction][month] += 1
+        else:
+            self.visitor_count_history[self.attraction][month] = 1
+
+
+    def plot_visitor_count_over_time(self):
+      months_to_plot = input("Enter the month names separated by commas (e.g., January, February, March) to view the number of visitors: ").split(",")
+      months_to_plot = [month.strip().upper() for month in months_to_plot]
+      filtered_history = {month: count for month, count in self.visitor_count_history[self.attraction].items() if month.upper() in months_to_plot}
+      visitor_counts = list(filtered_history.values())
+      months = list(filtered_history.keys())
+      plt.plot(months, visitor_counts)
+      plt.title(f'Visitor Count by Month at {self.attraction}')
+      plt.xlabel('Month')
+      plt.ylabel('Visitor Count')
+      plt.xticks(rotation=45)
+      plt.tight_layout()
+      plt.show()
+
+class Revenue:
+    def __init__(self, source, payment_method):
+        self.source = source.title() #Ticket Sales, Merchandise, etc
+        self.payment_method = payment_method.title() # Cash Credit Card
+        self.revenue = self.calculate_revenue()
+
+    def calculate_revenue(self):
+        return random.randint(100, 1000)
+
+    def display_revenue(self):
+        print(f"Revenue from {self.source} ({self.payment_method}): ${self.revenue}")
+
+class EmployeeManagement:
+    def __init__(self):
+        self.conn = sqlite3.connect('test25.db')
+        self.cur = self.conn.cursor()
+
+    def create_table(self):
+        self.cur.execute('''CREATE TABLE IF NOT EXISTS employees
+                            (id INTEGER PRIMARY KEY, role TEXT, shift TEXT, salary REAL, contact TEXT)''')
+        self.conn.commit()
+
+    def add_employee(self, role, shift, salary, contact):
+        self.cur.execute("INSERT INTO employees (role, shift, salary, contact) VALUES (?, ?, ?, ?)", (role, shift, salary, contact))
+        self.conn.commit()
+
+    def get_employees_by_shift(self, shift):
+        self.cur.execute("SELECT * FROM employees WHERE shift = ?", (shift,))
+        return self.cur.fetchall()
+
+    def close_connection(self):
+        self.conn.close()
+
+# Create an instance of the AmusementPark class
+park = AmusementPark("Wonderland", "Roller Coaster", 1000, 50)
+
+# Simulate visitors entering the park multiple times
+num_visitors_per_month = {'January': 150, 'February': 200, 'March': 250, 'April': 300}
+for month, num_visitors in num_visitors_per_month.items():
+    for _ in range(num_visitors):
+        park.enter()
+        park.exit()
+
+# Plot the visitor count for the user-specified months
+park.plot_visitor_count_over_time()
+
+# Create an instance of the EmployeeManagement class
+employee_management = EmployeeManagement()
+
+# Create the employees table if it doesn't exist
+employee_management.create_table()
+
+# Add employees to the table
+employees_data = [
+    ("manager", "morning", 55000, "416-707-7020"),
+    ("supervisor", "afternoon", 30000, "437-707-5090"),
+    ("associate", "morning", 25000, "543-909-4567"),
+    ("receptionist", "evening", 45000, "415-707-8670"),
+    ("senior manager", "evening", 75000, "432-909-7865")
+]
+
+for employee_data in employees_data:
+    employee_management.add_employee(*employee_data)
+
+# Prompt user for shift
+shift = input("Enter the shift (morning, afternoon, evening) to see who is working it: ")
+
+# Execute a SQL query to select rows from the employees table based on shift
+rows = employee_management.get_employees_by_shift(shift)
+
+print("Role\t\tShift\tSalary\t\tContact")
+print("="*60)
+
+for row in rows:
+    print(f"{row[1]}\t{row[2]}\t{row[3]}\t{row[4]}")
+
+# Close the database connection
+employee_management.close_connection()
+
+
+print("\n========================== Revenue Information ==========================\n")
+#For the manager who wants to see the source of revenue
+# Create a dictionary to store revenue data
+revenue_data = {
+    "Ticket Sales": "Cash",
+    "Merchandise": "Credit Card",
+    "Food and Drink": "Credit Card",
+    "Online Sales": "Credit Card",
+    "Entrance ticket sales": "Cash",
+    "Ticket Sales": "Credit Card"
+}
+
+# Create an empty list to store the revenue instances
+revenues = []
+
+# Loop through the revenue data and create instances of the Revenue class. The data that is added to the revenues
+#list is then used to
+for source, payment_method in revenue_data.items():
+    revenue_instance = Revenue(source, payment_method)
+    revenues.append(revenue_instance)
+
+# Create a DataFrame from the revenue data
+#pandas library is used to create a DataFrame from the revenues list
+#A DataFrame is a two-dimensional labeled data structure
+#with columns that can be of different types. It is similar to a spreadsheet or SQL table, # 2 columns "Payment Method" and "Revenue".
+revenue_source_df = pd.DataFrame([[revenue.source, revenue.revenue] for revenue in revenues], columns=["Source", "Revenue"])
+# Calculate total revenue by source
+total_revenue_by_source = revenue_source_df.groupby("Source")["Revenue"].sum()
+print("Total Revenue by Source:")
+print(total_revenue_by_source)
+
+# Create a DataFrame from the revenue data
+# 2 columns "Payment Method" and "Revenue".
+revenue_payment_df = pd.DataFrame([[revenue.payment_method, revenue.revenue] for revenue in revenues], columns=["Payment Method", "Revenue"])
+# Calculate total revenue by payment method
+#The groupby method groups the DataFrame by the values in the "Payment Method" column, and the
+#sum method calculates the sum of the "Revenue"
+#column for each group. The result is a Series containing the total revenue for each payment method.
+total_revenue_by_payment_method = revenue_payment_df.groupby("Payment Method")["Revenue"].sum()
+print("Total Revenue by Payment Method:")
+print(total_revenue_by_payment_method)
+
+# Plot a pie chart for total revenue by source
+plt.figure(figsize=(8, 8))
+plt.pie(total_revenue_by_source, labels=total_revenue_by_source.index, autopct='%1.1f%%', startangle=140)
+plt.title("Total Revenue by Source")
+plt.axis('equal')
+plt.show()
+
+# Create a bar plot of revenue by payment method
+plt.figure(figsize=(10, 6))
+sns.barplot(data=revenue_payment_df, x="Payment Method", y="Revenue")
+plt.title("Revenue by Payment Method")
+plt.xlabel("Payment Method")
+plt.ylabel("Revenue")
+plt.show()
+
